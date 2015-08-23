@@ -31,6 +31,20 @@ The `.` command works with all operator mappings, and will work with the
 linewise mappings as well if you install
 [repeat.vim](https://github.com/tpope/vim-repeat).
 
+## Disable default mappings
+
+If you want to disable some default mappings, please define the config
+object like below.
+
+    let g:unimpaired_mapping = {
+      \ 'encodings' : 0,
+      \ 'excludes' : { 'toggles' : ['h'], 'keys' : [']b', '>p'] }
+      \ }
+
+The above example disables all of the mappings for encoding and decoding
+(like `[x`, `]x`, etc) and `]oh`, `[oh`, `coh`, `]b`, `>p`. For more details,
+please see `:help unimpaired-config`.
+
 ## Installation
 
 If you don't have a preferred installation method, I recommend
