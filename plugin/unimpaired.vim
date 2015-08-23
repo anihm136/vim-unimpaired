@@ -8,6 +8,43 @@ if exists("g:loaded_unimpaired") || &cp || v:version < 700
 endif
 let g:loaded_unimpaired = 1
 
+" Mapping configuration {{{1
+
+if ! exists('g:unimpaired_mapping') || type(g:unimpaired_mapping) != type({})
+  let g:unimpaired_mapping = {}
+endif
+let g:unimpaired_mapping = extend({
+  \   'none'      : 0,
+  \   'nextprevs' : 1,
+  \   'lineopes'  : 1,
+  \   'toggles'   : 1,
+  \   'pastings'  : 1,
+  \   'encodings' : 1
+  \ }, g:unimpaired_mapping)
+
+if ! has_key(g:unimpaired_mapping, 'excludes') || type(g:unimpaired_mapping.excludes) != type({})
+  let g:unimpaired_mapping.excludes = {}
+endif
+let g:unimpaired_mapping.excludes = extend({
+  \   'nextprevs' : [],
+  \   'lineopes'  : [],
+  \   'toggles'   : [],
+  \   'encodings' : [],
+  \   'keys'      : []
+  \ }, g:unimpaired_mapping.excludes)
+
+function! s:need_default_mapping_for(name)
+  return ! g:unimpaired_mapping.none
+      \ && g:unimpaired_mapping[a:name]
+endfunction
+
+function! s:map_if_necessary(map_cmd, lhs, rhs)
+  if -1 == index(g:unimpaired_mapping.excludes.keys, a:lhs)
+    execute a:map_cmd a:lhs a:rhs
+  endif
+endfunction
+
+" }}}
 " Next and previous {{{1
 
 function! s:MapNextFamily(map,cmd)
