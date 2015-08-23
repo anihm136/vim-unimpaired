@@ -331,6 +331,11 @@ nnoremap [ov :set virtualedit+=all<CR>
 nnoremap ]ov :set virtualedit-=all<CR>
 nnoremap cov :set <C-R>=(&virtualedit =~# "all") ? 'virtualedit-=all' : 'virtualedit+=all'<CR><CR>
 
+" }}}1
+" Put {{{1
+
+let s:need_pastings_mappings = s:need_default_mapping_for('pastings')
+
 function! s:setup_paste() abort
   let s:paste = &paste
   let s:mouse = &mouse
@@ -340,22 +345,20 @@ endfunction
 
 nnoremap <silent> <Plug>unimpairedPaste :call <SID>setup_paste()<CR>
 
-nnoremap <silent> yo  :call <SID>setup_paste()<CR>o
-nnoremap <silent> yO  :call <SID>setup_paste()<CR>O
-
-augroup unimpaired_paste
-  autocmd!
-  autocmd InsertLeave *
-        \ if exists('s:paste') |
-        \   let &paste = s:paste |
-        \   let &mouse = s:mouse |
-        \   unlet s:paste |
-        \   unlet s:mouse |
-        \ endif
-augroup END
-
-" }}}1
-" Put {{{1
+if s:need_pastings_mappings
+  call s:map_if_necessary('nnoremap <silent>', 'yo', ':call <SID>setup_paste()<CR>o')
+  call s:map_if_necessary('nnoremap <silent>', 'yO', ':call <SID>setup_paste()<CR>O')
+  augroup unimpaired_past
+    autocmd!
+    autocmd InsertLeave *
+          \ if exists('s:paste') |
+          \   let &paste = s:paste |
+          \   let &mouse = s:mouse |
+          \   unlet s:paste |
+          \   unlet s:mouse |
+          \ endif
+  augroup END
+endif
 
 function! s:putline(how, map) abort
   let [body, type] = [getreg(v:register), getregtype(v:register)]
@@ -377,15 +380,17 @@ nnoremap <silent> <Plug>unimpairedPutBelowShiftLeft  :call <SID>putline(']p', 'B
 nnoremap <silent> <Plug>unimpairedPutAboveReindent   :call <SID>putline('[p', 'Above')<CR>=']
 nnoremap <silent> <Plug>unimpairedPutBelowReindent   :call <SID>putline(']p', 'Below')<CR>=']
 
-nmap [p <Plug>unimpairedPutAbove
-nmap ]p <Plug>unimpairedPutBelow
+if s:need_pastings_mappings
+  call s:map_if_necessary('nmap', '[p', '<Plug>unimpairedPutAbove')
+  call s:map_if_necessary('nmap', ']p', '<Plug>unimpairedPutBelow')
 
-nmap <silent> >P <Plug>unimpairedPutAboveShiftRight
-nmap <silent> >p <Plug>unimpairedPutBelowShiftRight
-nmap <silent> <P <Plug>unimpairedPutAboveShiftLeft
-nmap <silent> <p <Plug>unimpairedPutBelowShiftLeft
-nmap <silent> =P <Plug>unimpairedPutAboveReindent
-nmap <silent> =p <Plug>unimpairedPutBelowReindent
+  call s:map_if_necessary('nmap <silent>', '>P', '<Plug>unimpairedPutAboveShiftRight')
+  call s:map_if_necessary('nmap <silent>', '>p', '<Plug>unimpairedPutBelowShiftRight')
+  call s:map_if_necessary('nmap <silent>', '<P', '<Plug>unimpairedPutAboveShiftLeft')
+  call s:map_if_necessary('nmap <silent>', '<p', '<Plug>unimpairedPutBelowShiftLeft')
+  call s:map_if_necessary('nmap <silent>', '=P', '<Plug>unimpairedPutAboveReindent')
+  call s:map_if_necessary('nmap <silent>', '=p', '<Plug>unimpairedPutBelowReindent')
+endif
 
 " }}}1
 " Encoding and decoding {{{1
