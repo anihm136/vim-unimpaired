@@ -370,14 +370,22 @@ endfunction
 nnoremap <silent> <Plug>unimpairedPutAbove :call <SID>putline('[p', 'Above')<CR>
 nnoremap <silent> <Plug>unimpairedPutBelow :call <SID>putline(']p', 'Below')<CR>
 
+nnoremap <silent> <Plug>unimpairedPutAboveShiftRight :call <SID>putline('[p', 'Above')<CR>>']
+nnoremap <silent> <Plug>unimpairedPutBelowShiftRight :call <SID>putline(']p', 'Below')<CR>>']
+nnoremap <silent> <Plug>unimpairedPutAboveShiftLeft  :call <SID>putline('[p', 'Above')<CR><']
+nnoremap <silent> <Plug>unimpairedPutBelowShiftLeft  :call <SID>putline(']p', 'Below')<CR><']
+nnoremap <silent> <Plug>unimpairedPutAboveReindent   :call <SID>putline('[p', 'Above')<CR>=']
+nnoremap <silent> <Plug>unimpairedPutBelowReindent   :call <SID>putline(']p', 'Below')<CR>=']
+
 nmap [p <Plug>unimpairedPutAbove
 nmap ]p <Plug>unimpairedPutBelow
-nnoremap <silent> >P :call <SID>putline('[p', 'Above')<CR>>']
-nnoremap <silent> >p :call <SID>putline(']p', 'Below')<CR>>']
-nnoremap <silent> <P :call <SID>putline('[p', 'Above')<CR><']
-nnoremap <silent> <p :call <SID>putline(']p', 'Below')<CR><']
-nnoremap <silent> =P :call <SID>putline('[p', 'Above')<CR>=']
-nnoremap <silent> =p :call <SID>putline(']p', 'Below')<CR>=']
+
+nmap <silent> >P <Plug>unimpairedPutAboveShiftRight
+nmap <silent> >p <Plug>unimpairedPutBelowShiftRight
+nmap <silent> <P <Plug>unimpairedPutAboveShiftLeft
+nmap <silent> <p <Plug>unimpairedPutBelowShiftLeft
+nmap <silent> =P <Plug>unimpairedPutAboveReindent
+nmap <silent> =p <Plug>unimpairedPutBelowReindent
 
 " }}}1
 " Encoding and decoding {{{1
