@@ -331,6 +331,9 @@ nnoremap [ov :set virtualedit+=all<CR>
 nnoremap ]ov :set virtualedit-=all<CR>
 nnoremap cov :set <C-R>=(&virtualedit =~# "all") ? 'virtualedit-=all' : 'virtualedit+=all'<CR><CR>
 
+" Uses can define own option-toggling mappings by this.
+let g:Unimpaired_toggle_option_by = function('<SID>option_map')
+
 " }}}1
 " Put {{{1
 
