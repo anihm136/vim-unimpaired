@@ -8,25 +8,92 @@ if exists("g:loaded_unimpaired") || &cp || v:version < 700
 endif
 let g:loaded_unimpaired = 1
 
+" Mapping configuration {{{1
+
+if ! exists('g:unimpaired_mapping') || type(g:unimpaired_mapping) != type({})
+  let g:unimpaired_mapping = {}
+endif
+let g:unimpaired_mapping = extend({
+  \   'none'      : 0,
+  \   'nextprevs' : 1,
+  \   'lineopes'  : 1,
+  \   'toggles'   : 1,
+  \   'pastings'  : 1,
+  \   'encodings' : 1
+  \ }, g:unimpaired_mapping)
+
+if ! has_key(g:unimpaired_mapping, 'excludes') || type(g:unimpaired_mapping.excludes) != type({})
+  let g:unimpaired_mapping.excludes = {}
+endif
+let g:unimpaired_mapping.excludes = extend({
+  \   'nextprevs' : [],
+  \   'lineopes'  : [],
+  \   'toggles'   : [],
+  \   'encodings' : [],
+  \   'keys'      : []
+  \ }, g:unimpaired_mapping.excludes)
+
+function! s:need_default_mapping_for(name)
+  return ! g:unimpaired_mapping.none
+      \ && g:unimpaired_mapping[a:name]
+endfunction
+
+function! s:map_if_necessary(map_cmd, lhs, rhs)
+  if -1 == index(g:unimpaired_mapping.excludes.keys, a:lhs)
+    execute a:map_cmd a:lhs a:rhs
+  endif
+endfunction
+
+function! s:add_excludes_keys(section_name, Convert)
+  let actual_keys = []
+  for key in g:unimpaired_mapping.excludes[a:section_name]
+    call extend(actual_keys, a:Convert(key))
+  endfor
+  call extend(g:unimpaired_mapping.excludes.keys, actual_keys)
+endfunction
+
+" }}}
 " Next and previous {{{1
+
+let s:need_nextprevs_mappings = s:need_default_mapping_for('nextprevs')
+if s:need_nextprevs_mappings
+  function! s:make_excludes_keys_of_nextprevs(key)
+    return [
+      \   ']'.a:key,          '['.a:key,
+      \   ']'.toupper(a:key), '['.toupper(a:key),
+      \   ']<C-'.a:key.'>',   '[<C-'.a:key.'>'
+      \ ]
+  endfunction
+  call s:add_excludes_keys('nextprevs', function('<SID>make_excludes_keys_of_nextprevs'))
+endif
 
 function! s:MapNextFamily(map,cmd)
   let map = '<Plug>unimpaired'.toupper(a:map)
   let cmd = '".(v:count ? v:count : "")."'.a:cmd
   let end = '"<CR>'.(a:cmd == 'l' || a:cmd == 'c' ? 'zv' : '')
+  let has_nfile_cmd = exists(':'.a:cmd.'nfile')
   execute 'nnoremap <silent> '.map.'Previous :<C-U>exe "'.cmd.'previous'.end
   execute 'nnoremap <silent> '.map.'Next     :<C-U>exe "'.cmd.'next'.end
   execute 'nnoremap <silent> '.map.'First    :<C-U>exe "'.cmd.'first'.end
   execute 'nnoremap <silent> '.map.'Last     :<C-U>exe "'.cmd.'last'.end
-  execute 'nmap <silent> ['.        a:map .' '.map.'Previous'
-  execute 'nmap <silent> ]'.        a:map .' '.map.'Next'
-  execute 'nmap <silent> ['.toupper(a:map).' '.map.'First'
-  execute 'nmap <silent> ]'.toupper(a:map).' '.map.'Last'
-  if exists(':'.a:cmd.'nfile')
+  if has_nfile_cmd
     execute 'nnoremap <silent> '.map.'PFile :<C-U>exe "'.cmd.'pfile'.end
     execute 'nnoremap <silent> '.map.'NFile :<C-U>exe "'.cmd.'nfile'.end
-    execute 'nmap <silent> [<C-'.a:map.'> '.map.'PFile'
-    execute 'nmap <silent> ]<C-'.a:map.'> '.map.'NFile'
+  endif
+
+  if s:need_nextprevs_mappings
+    call s:DefMapNextFamily(a:map, map, has_nfile_cmd)
+  endif
+endfunction
+
+function! s:DefMapNextFamily(key, plug_key, has_nfile_cmd)
+  call s:map_if_necessary('nmap <silent>', '['.        a:key , a:plug_key.'Previous')
+  call s:map_if_necessary('nmap <silent>', ']'.        a:key , a:plug_key.'Next')
+  call s:map_if_necessary('nmap <silent>', '['.toupper(a:key), a:plug_key.'First')
+  call s:map_if_necessary('nmap <silent>', ']'.toupper(a:key), a:plug_key.'Last')
+  if a:has_nfile_cmd
+    call s:map_if_necessary('nmap <silent>', '[<C-'.a:key.'>', a:plug_key.'PFile')
+    call s:map_if_necessary('nmap <silent>', ']<C-'.a:key.'>', a:plug_key.'NFile')
   endif
 endfunction
 
@@ -88,21 +155,27 @@ endfunction
 
 nnoremap <silent> <Plug>unimpairedDirectoryNext     :<C-U>edit <C-R>=fnamemodify(<SID>fnameescape(<SID>FileByOffset(v:count1)), ':.')<CR><CR>
 nnoremap <silent> <Plug>unimpairedDirectoryPrevious :<C-U>edit <C-R>=fnamemodify(<SID>fnameescape(<SID>FileByOffset(-v:count1)), ':.')<CR><CR>
-nmap ]f <Plug>unimpairedDirectoryNext
-nmap [f <Plug>unimpairedDirectoryPrevious
+if s:need_nextprevs_mappings
+  call s:map_if_necessary('nmap', ']f', '<Plug>unimpairedDirectoryNext')
+  call s:map_if_necessary('nmap', '[f', '<Plug>unimpairedDirectoryPrevious')
+endif
 
 nmap <silent> <Plug>unimpairedONext     <Plug>unimpairedDirectoryNext:echohl WarningMSG<Bar>echo "]o is deprecated. Use ]f"<Bar>echohl NONE<CR>
 nmap <silent> <Plug>unimpairedOPrevious <Plug>unimpairedDirectoryPrevious:echohl WarningMSG<Bar>echo "[o is deprecated. Use [f"<Bar>echohl NONE<CR>
-nmap ]o <Plug>unimpairedONext
-nmap [o <Plug>unimpairedOPrevious
+if s:need_nextprevs_mappings
+  call s:map_if_necessary('nmap', ']o', '<Plug>unimpairedONext')
+  call s:map_if_necessary('nmap', '[o', '<Plug>unimpairedOPrevious')
+endif
 
 " }}}1
 " Diff {{{1
 
-nmap [n <Plug>unimpairedContextPrevious
-nmap ]n <Plug>unimpairedContextNext
-omap [n <Plug>unimpairedContextPrevious
-omap ]n <Plug>unimpairedContextNext
+if s:need_nextprevs_mappings
+  call s:map_if_necessary('nmap', '[n', '<Plug>unimpairedContextPrevious')
+  call s:map_if_necessary('nmap', ']n', '<Plug>unimpairedContextNext')
+  call s:map_if_necessary('omap', '[n', '<Plug>unimpairedContextPrevious')
+  call s:map_if_necessary('omap', ']n', '<Plug>unimpairedContextNext')
+endif
 
 nnoremap <silent> <Plug>unimpairedContextPrevious :call <SID>Context(1)<CR>
 nnoremap <silent> <Plug>unimpairedContextNext     :call <SID>Context(0)<CR>
@@ -146,6 +219,14 @@ endfunction
 " }}}1
 " Line operations {{{1
 
+let s:need_lineopes_mappings = s:need_default_mapping_for('lineopes')
+if s:need_lineopes_mappings
+  function! s:make_excludes_keys_of_lineopes(key)
+    return [ ']'.a:key, '['.a:key, ]
+  endfunction
+  call s:add_excludes_keys('lineopes', function('<SID>make_excludes_keys_of_lineopes'))
+endif
+
 function! s:BlankUp(count) abort
   put!=repeat(nr2char(10), a:count)
   ']+1
@@ -161,8 +242,10 @@ endfunction
 nnoremap <silent> <Plug>unimpairedBlankUp   :<C-U>call <SID>BlankUp(v:count1)<CR>
 nnoremap <silent> <Plug>unimpairedBlankDown :<C-U>call <SID>BlankDown(v:count1)<CR>
 
-nmap [<Space> <Plug>unimpairedBlankUp
-nmap ]<Space> <Plug>unimpairedBlankDown
+if s:need_lineopes_mappings
+  call s:map_if_necessary('nmap', '[<Space>', '<Plug>unimpairedBlankUp')
+  call s:map_if_necessary('nmap', ']<Space>', '<Plug>unimpairedBlankDown')
+endif
 
 function! s:Move(cmd, count, map) abort
   normal! m`
@@ -190,13 +273,23 @@ nnoremap <silent> <Plug>unimpairedMoveDown          :<C-U>call <SID>Move('+',v:c
 noremap  <silent> <Plug>unimpairedMoveSelectionUp   :<C-U>call <SID>MoveSelectionUp(v:count1)<CR>
 noremap  <silent> <Plug>unimpairedMoveSelectionDown :<C-U>call <SID>MoveSelectionDown(v:count1)<CR>
 
-nmap [e <Plug>unimpairedMoveUp
-nmap ]e <Plug>unimpairedMoveDown
-xmap [e <Plug>unimpairedMoveSelectionUp
-xmap ]e <Plug>unimpairedMoveSelectionDown
+if s:need_lineopes_mappings
+  call s:map_if_necessary('nmap', '[e', '<Plug>unimpairedMoveUp')
+  call s:map_if_necessary('nmap', ']e', '<Plug>unimpairedMoveDown')
+  call s:map_if_necessary('xmap', '[e', '<Plug>unimpairedMoveSelectionUp')
+  call s:map_if_necessary('xmap', ']e', '<Plug>unimpairedMoveSelectionDown')
+endif
 
 " }}}1
 " Option toggling {{{1
+
+let s:need_toggles_mappings = s:need_default_mapping_for('toggles')
+if s:need_toggles_mappings
+  function! s:make_excludes_keys_of_toggles(key)
+    return [ '[o'.a:key, ']o'.a:key, 'co'.a:key ]
+  endfunction
+  call s:add_excludes_keys('toggles', function('<SID>make_excludes_keys_of_toggles'))
+endif
 
 function! s:statusbump() abort
   let &l:readonly = &l:readonly
@@ -209,9 +302,11 @@ function! s:toggle(op) abort
 endfunction
 
 function! s:option_map(letter, option) abort
-  exe 'nnoremap [o'.a:letter ':set '.a:option.'<C-R>=<SID>statusbump()<CR><CR>'
-  exe 'nnoremap ]o'.a:letter ':set no'.a:option.'<C-R>=<SID>statusbump()<CR><CR>'
-  exe 'nnoremap co'.a:letter ':set <C-R>=<SID>toggle("'.a:option.'")<CR><CR>'
+  if s:need_toggles_mappings
+    call s:map_if_necessary('nnoremap', '[o'.a:letter, ':set '.a:option.'<C-R>=<SID>statusbump()<CR><CR>')
+    call s:map_if_necessary('nnoremap', ']o'.a:letter, ':set no'.a:option.'<C-R>=<SID>statusbump()<CR><CR>')
+    call s:map_if_necessary('nnoremap', 'co'.a:letter, ':set <C-R>=<SID>toggle("'.a:option.'")<CR><CR>')
+  endif
 endfunction
 
 nnoremap [ob :set background=light<CR>
@@ -236,6 +331,11 @@ nnoremap [ov :set virtualedit+=all<CR>
 nnoremap ]ov :set virtualedit-=all<CR>
 nnoremap cov :set <C-R>=(&virtualedit =~# "all") ? 'virtualedit-=all' : 'virtualedit+=all'<CR><CR>
 
+" }}}1
+" Put {{{1
+
+let s:need_pastings_mappings = s:need_default_mapping_for('pastings')
+
 function! s:setup_paste() abort
   let s:paste = &paste
   let s:mouse = &mouse
@@ -245,22 +345,20 @@ endfunction
 
 nnoremap <silent> <Plug>unimpairedPaste :call <SID>setup_paste()<CR>
 
-nnoremap <silent> yo  :call <SID>setup_paste()<CR>o
-nnoremap <silent> yO  :call <SID>setup_paste()<CR>O
-
-augroup unimpaired_paste
-  autocmd!
-  autocmd InsertLeave *
-        \ if exists('s:paste') |
-        \   let &paste = s:paste |
-        \   let &mouse = s:mouse |
-        \   unlet s:paste |
-        \   unlet s:mouse |
-        \ endif
-augroup END
-
-" }}}1
-" Put {{{1
+if s:need_pastings_mappings
+  call s:map_if_necessary('nnoremap <silent>', 'yo', ':call <SID>setup_paste()<CR>o')
+  call s:map_if_necessary('nnoremap <silent>', 'yO', ':call <SID>setup_paste()<CR>O')
+  augroup unimpaired_past
+    autocmd!
+    autocmd InsertLeave *
+          \ if exists('s:paste') |
+          \   let &paste = s:paste |
+          \   let &mouse = s:mouse |
+          \   unlet s:paste |
+          \   unlet s:mouse |
+          \ endif
+  augroup END
+endif
 
 function! s:putline(how, map) abort
   let [body, type] = [getreg(v:register), getregtype(v:register)]
@@ -275,17 +373,38 @@ endfunction
 nnoremap <silent> <Plug>unimpairedPutAbove :call <SID>putline('[p', 'Above')<CR>
 nnoremap <silent> <Plug>unimpairedPutBelow :call <SID>putline(']p', 'Below')<CR>
 
-nmap [p <Plug>unimpairedPutAbove
-nmap ]p <Plug>unimpairedPutBelow
-nnoremap <silent> >P :call <SID>putline('[p', 'Above')<CR>>']
-nnoremap <silent> >p :call <SID>putline(']p', 'Below')<CR>>']
-nnoremap <silent> <P :call <SID>putline('[p', 'Above')<CR><']
-nnoremap <silent> <p :call <SID>putline(']p', 'Below')<CR><']
-nnoremap <silent> =P :call <SID>putline('[p', 'Above')<CR>=']
-nnoremap <silent> =p :call <SID>putline(']p', 'Below')<CR>=']
+nnoremap <silent> <Plug>unimpairedPutAboveShiftRight :call <SID>putline('[p', 'Above')<CR>>']
+nnoremap <silent> <Plug>unimpairedPutBelowShiftRight :call <SID>putline(']p', 'Below')<CR>>']
+nnoremap <silent> <Plug>unimpairedPutAboveShiftLeft  :call <SID>putline('[p', 'Above')<CR><']
+nnoremap <silent> <Plug>unimpairedPutBelowShiftLeft  :call <SID>putline(']p', 'Below')<CR><']
+nnoremap <silent> <Plug>unimpairedPutAboveReindent   :call <SID>putline('[p', 'Above')<CR>=']
+nnoremap <silent> <Plug>unimpairedPutBelowReindent   :call <SID>putline(']p', 'Below')<CR>=']
+
+if s:need_pastings_mappings
+  call s:map_if_necessary('nmap', '[p', '<Plug>unimpairedPutAbove')
+  call s:map_if_necessary('nmap', ']p', '<Plug>unimpairedPutBelow')
+
+  call s:map_if_necessary('nmap <silent>', '>P', '<Plug>unimpairedPutAboveShiftRight')
+  call s:map_if_necessary('nmap <silent>', '>p', '<Plug>unimpairedPutBelowShiftRight')
+  call s:map_if_necessary('nmap <silent>', '<P', '<Plug>unimpairedPutAboveShiftLeft')
+  call s:map_if_necessary('nmap <silent>', '<p', '<Plug>unimpairedPutBelowShiftLeft')
+  call s:map_if_necessary('nmap <silent>', '=P', '<Plug>unimpairedPutAboveReindent')
+  call s:map_if_necessary('nmap <silent>', '=p', '<Plug>unimpairedPutBelowReindent')
+endif
 
 " }}}1
 " Encoding and decoding {{{1
+
+let s:need_encodings_mappings = s:need_default_mapping_for('encodings')
+if s:need_encodings_mappings
+  function! s:make_excludes_keys_for_encodings(key)
+    return [
+      \   ']'.a:key, '['.a:key,
+      \   ']'.a:key.a:key, ']'.a:key.a:key
+      \ ]
+  endfunction
+  call s:add_excludes_keys('encodings', function('<SID>make_excludes_keys_for_encodings'))
+endif
 
 function! s:string_encode(str)
   let map = {"\n": 'n', "\r": 'r', "\t": 't', "\b": 'b', "\f": '\f', '"': '"', '\': '\'}
@@ -448,9 +567,12 @@ function! UnimpairedMapTransform(algorithm, key)
   exe 'nnoremap <silent> <Plug>unimpaired_'    .a:algorithm.' :<C-U>call <SID>TransformSetup("'.a:algorithm.'")<CR>g@'
   exe 'xnoremap <silent> <Plug>unimpaired_'    .a:algorithm.' :<C-U>call <SID>Transform("'.a:algorithm.'",visualmode())<CR>'
   exe 'nnoremap <silent> <Plug>unimpaired_line_'.a:algorithm.' :<C-U>call <SID>Transform("'.a:algorithm.'",v:count1)<CR>'
-  exe 'nmap '.a:key.'  <Plug>unimpaired_'.a:algorithm
-  exe 'xmap '.a:key.'  <Plug>unimpaired_'.a:algorithm
-  exe 'nmap '.a:key.a:key[strlen(a:key)-1].' <Plug>unimpaired_line_'.a:algorithm
+
+  if s:need_encodings_mappings
+    call s:map_if_necessary('nmap', a:key, '<Plug>unimpaired_'.a:algorithm)
+    call s:map_if_necessary('xmap', a:key, '<Plug>unimpaired_'.a:algorithm)
+    call s:map_if_necessary('nmap', a:key.a:key[strlen(a:key)-1], '<Plug>unimpaired_line_'.a:algorithm)
+  endif
 endfunction
 
 call UnimpairedMapTransform('string_encode','[y')

@@ -145,6 +145,61 @@ Mnemonic: encoding always comes before decoding; "[" always comes before "]".
 ]yy
 {Visual}]y
 
+
+CONFIG                                            *unimpaired-config*
+
+All default mappings can be disabled by defining the configuration
+dictionary. By default, the dictionary is defined as below. >
+
+	g:unimpaired_mapping = {
+	\  'none'      : 0,
+	\  'nextprevs' : 1,
+	\  'lineopes'  : 1,
+	\  'toggles'   : 1,
+	\  'pastings'  : 1,
+	\  'encodings' : 1,
+	\  'excludes'  : {
+	\     'nextprevs' : [],
+	\     'lineopes'  : [],
+	\     'toggles'   : [],
+	\     'encodings' : [],
+	\     'keys'      : []
+	\   }
+	\ }
+
+You can disable all of the mappings in the specific category by setting 0
+to the category. If "none" is set to 1, all default mappings are disabled.
+
+categories:
+	"nextprevs"	|unimpaired-next|
+	"lineopes"	|unimpaired-lines|
+	"toggles"	|unimpaired-toggling|
+	"pastings"	|unimpaired-pasting|
+	"encodings"	|unimpaired-encoding|
+
+And you can disable the specific key mappings by setting "excludes" values.
+The settings below is an example. >
+
+	g:unimpaired_mapping = {
+	\   'excludes' : {
+	\     'nextprevs' : ['b'],
+	\     'toggles'   : ['h'],
+	\     'keys'      : ['>p', '>P']
+	\   }
+	\ }
+
+This example disables these mappings:
+|]b|, |[b|, |]B|, |[B|, |]oh|, |[oh|, |coh|, |>p|, |>P|.
+
+Or you can put "]b" in the "keys" array directly if you want to disable only
+it without disabling the "[b", "]B", "[B".
+Note that "excludes" map has not the "pastings" array. So if you want to disable
+some of the mappings in "pastings" group, these keys always have to be put in
+"keys" array directly.
+
+Note that all of the <Plug> mappings are always defined regardless of the
+configuration.
+
 TODO                                            *unimpaired-todo*
 
 Avoid munging null characters when encoding and decoding.
