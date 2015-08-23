@@ -219,6 +219,14 @@ endfunction
 " }}}1
 " Line operations {{{1
 
+let s:need_lineopes_mappings = s:need_default_mapping_for('lineopes')
+if s:need_lineopes_mappings
+  function! s:make_excludes_keys_of_lineopes(key)
+    return [ ']'.a:key, '['.a:key, ]
+  endfunction
+  call s:add_excludes_keys('lineopes', function('<SID>make_excludes_keys_of_lineopes'))
+endif
+
 function! s:BlankUp(count) abort
   put!=repeat(nr2char(10), a:count)
   ']+1
@@ -234,8 +242,10 @@ endfunction
 nnoremap <silent> <Plug>unimpairedBlankUp   :<C-U>call <SID>BlankUp(v:count1)<CR>
 nnoremap <silent> <Plug>unimpairedBlankDown :<C-U>call <SID>BlankDown(v:count1)<CR>
 
-nmap [<Space> <Plug>unimpairedBlankUp
-nmap ]<Space> <Plug>unimpairedBlankDown
+if s:need_lineopes_mappings
+  call s:map_if_necessary('nmap', '[<Space>', '<Plug>unimpairedBlankUp')
+  call s:map_if_necessary('nmap', ']<Space>', '<Plug>unimpairedBlankDown')
+endif
 
 function! s:Move(cmd, count, map) abort
   normal! m`
@@ -263,10 +273,12 @@ nnoremap <silent> <Plug>unimpairedMoveDown          :<C-U>call <SID>Move('+',v:c
 noremap  <silent> <Plug>unimpairedMoveSelectionUp   :<C-U>call <SID>MoveSelectionUp(v:count1)<CR>
 noremap  <silent> <Plug>unimpairedMoveSelectionDown :<C-U>call <SID>MoveSelectionDown(v:count1)<CR>
 
-nmap [e <Plug>unimpairedMoveUp
-nmap ]e <Plug>unimpairedMoveDown
-xmap [e <Plug>unimpairedMoveSelectionUp
-xmap ]e <Plug>unimpairedMoveSelectionDown
+if s:need_lineopes_mappings
+  call s:map_if_necessary('nmap', '[e', '<Plug>unimpairedMoveUp')
+  call s:map_if_necessary('nmap', ']e', '<Plug>unimpairedMoveDown')
+  call s:map_if_necessary('xmap', '[e', '<Plug>unimpairedMoveSelectionUp')
+  call s:map_if_necessary('xmap', ']e', '<Plug>unimpairedMoveSelectionDown')
+endif
 
 " }}}1
 " Option toggling {{{1
