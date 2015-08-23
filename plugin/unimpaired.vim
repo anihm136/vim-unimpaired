@@ -283,6 +283,14 @@ endif
 " }}}1
 " Option toggling {{{1
 
+let s:need_toggles_mappings = s:need_default_mapping_for('toggles')
+if s:need_toggles_mappings
+  function! s:make_excludes_keys_of_toggles(key)
+    return [ '[o'.a:key, ']o'.a:key, 'co'.a:key ]
+  endfunction
+  call s:add_excludes_keys('toggles', function('<SID>make_excludes_keys_of_toggles'))
+endif
+
 function! s:statusbump() abort
   let &l:readonly = &l:readonly
   return ''
@@ -294,9 +302,11 @@ function! s:toggle(op) abort
 endfunction
 
 function! s:option_map(letter, option) abort
-  exe 'nnoremap [o'.a:letter ':set '.a:option.'<C-R>=<SID>statusbump()<CR><CR>'
-  exe 'nnoremap ]o'.a:letter ':set no'.a:option.'<C-R>=<SID>statusbump()<CR><CR>'
-  exe 'nnoremap co'.a:letter ':set <C-R>=<SID>toggle("'.a:option.'")<CR><CR>'
+  if s:need_toggles_mappings
+    call s:map_if_necessary('nnoremap', '[o'.a:letter, ':set '.a:option.'<C-R>=<SID>statusbump()<CR><CR>')
+    call s:map_if_necessary('nnoremap', ']o'.a:letter, ':set no'.a:option.'<C-R>=<SID>statusbump()<CR><CR>')
+    call s:map_if_necessary('nnoremap', 'co'.a:letter, ':set <C-R>=<SID>toggle("'.a:option.'")<CR><CR>')
+  endif
 endfunction
 
 nnoremap [ob :set background=light<CR>
