@@ -200,6 +200,17 @@ some of the mappings in "pastings" group, these keys always have to be put in
 Note that all of the <Plug> mappings are always defined regardless of the
 configuration.
 
+ADDITION                                            *unimpaired-addition*
+
+g:Unimpaired_toggle_option_by({letter}, {option})
+	Define additional option-toggling mappings.
+	Example: >
+
+	call g:Unimpaired_toggle_option_by('e', 'expandtab')
+	" => [oe : set expandtab
+	" => ]oe : set noexpandtab
+	" => coe : toggle expandtab
+
 TODO                                            *unimpaired-todo*
 
 Avoid munging null characters when encoding and decoding.
