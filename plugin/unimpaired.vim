@@ -44,26 +44,56 @@ function! s:map_if_necessary(map_cmd, lhs, rhs)
   endif
 endfunction
 
+function! s:add_excludes_keys(section_name, Convert)
+  let actual_keys = []
+  for key in g:unimpaired_mapping.excludes[a:section_name]
+    call extend(actual_keys, a:Convert(key))
+  endfor
+  call extend(g:unimpaired_mapping.excludes.keys, actual_keys)
+endfunction
+
 " }}}
 " Next and previous {{{1
+
+let s:need_nextprevs_mappings = s:need_default_mapping_for('nextprevs')
+if s:need_nextprevs_mappings
+  function! s:make_excludes_keys_of_nextprevs(key)
+    return [
+      \   ']'.a:key,          '['.a:key,
+      \   ']'.toupper(a:key), '['.toupper(a:key),
+      \   ']<C-'.a:key.'>',   '[<C-'.a:key.'>'
+      \ ]
+  endfunction
+  call s:add_excludes_keys('nextprevs', function('<SID>make_excludes_keys_of_nextprevs'))
+endif
 
 function! s:MapNextFamily(map,cmd)
   let map = '<Plug>unimpaired'.toupper(a:map)
   let cmd = '".(v:count ? v:count : "")."'.a:cmd
   let end = '"<CR>'.(a:cmd == 'l' || a:cmd == 'c' ? 'zv' : '')
+  let has_nfile_cmd = exists(':'.a:cmd.'nfile')
   execute 'nnoremap <silent> '.map.'Previous :<C-U>exe "'.cmd.'previous'.end
   execute 'nnoremap <silent> '.map.'Next     :<C-U>exe "'.cmd.'next'.end
   execute 'nnoremap <silent> '.map.'First    :<C-U>exe "'.cmd.'first'.end
   execute 'nnoremap <silent> '.map.'Last     :<C-U>exe "'.cmd.'last'.end
-  execute 'nmap <silent> ['.        a:map .' '.map.'Previous'
-  execute 'nmap <silent> ]'.        a:map .' '.map.'Next'
-  execute 'nmap <silent> ['.toupper(a:map).' '.map.'First'
-  execute 'nmap <silent> ]'.toupper(a:map).' '.map.'Last'
-  if exists(':'.a:cmd.'nfile')
+  if has_nfile_cmd
     execute 'nnoremap <silent> '.map.'PFile :<C-U>exe "'.cmd.'pfile'.end
     execute 'nnoremap <silent> '.map.'NFile :<C-U>exe "'.cmd.'nfile'.end
-    execute 'nmap <silent> [<C-'.a:map.'> '.map.'PFile'
-    execute 'nmap <silent> ]<C-'.a:map.'> '.map.'NFile'
+  endif
+
+  if s:need_nextprevs_mappings
+    call s:DefMapNextFamily(a:map, map, has_nfile_cmd)
+  endif
+endfunction
+
+function! s:DefMapNextFamily(key, plug_key, has_nfile_cmd)
+  call s:map_if_necessary('nmap <silent>', '['.        a:key , a:plug_key.'Previous')
+  call s:map_if_necessary('nmap <silent>', ']'.        a:key , a:plug_key.'Next')
+  call s:map_if_necessary('nmap <silent>', '['.toupper(a:key), a:plug_key.'First')
+  call s:map_if_necessary('nmap <silent>', ']'.toupper(a:key), a:plug_key.'Last')
+  if a:has_nfile_cmd
+    call s:map_if_necessary('nmap <silent>', '[<C-'.a:key.'>', a:plug_key.'PFile')
+    call s:map_if_necessary('nmap <silent>', ']<C-'.a:key.'>', a:plug_key.'NFile')
   endif
 endfunction
 
@@ -125,21 +155,27 @@ endfunction
 
 nnoremap <silent> <Plug>unimpairedDirectoryNext     :<C-U>edit <C-R>=fnamemodify(<SID>fnameescape(<SID>FileByOffset(v:count1)), ':.')<CR><CR>
 nnoremap <silent> <Plug>unimpairedDirectoryPrevious :<C-U>edit <C-R>=fnamemodify(<SID>fnameescape(<SID>FileByOffset(-v:count1)), ':.')<CR><CR>
-nmap ]f <Plug>unimpairedDirectoryNext
-nmap [f <Plug>unimpairedDirectoryPrevious
+if s:need_nextprevs_mappings
+  call s:map_if_necessary('nmap', ']f', '<Plug>unimpairedDirectoryNext')
+  call s:map_if_necessary('nmap', '[f', '<Plug>unimpairedDirectoryPrevious')
+endif
 
 nmap <silent> <Plug>unimpairedONext     <Plug>unimpairedDirectoryNext:echohl WarningMSG<Bar>echo "]o is deprecated. Use ]f"<Bar>echohl NONE<CR>
 nmap <silent> <Plug>unimpairedOPrevious <Plug>unimpairedDirectoryPrevious:echohl WarningMSG<Bar>echo "[o is deprecated. Use [f"<Bar>echohl NONE<CR>
-nmap ]o <Plug>unimpairedONext
-nmap [o <Plug>unimpairedOPrevious
+if s:need_nextprevs_mappings
+  call s:map_if_necessary('nmap', ']o', '<Plug>unimpairedONext')
+  call s:map_if_necessary('nmap', '[o', '<Plug>unimpairedOPrevious')
+endif
 
 " }}}1
 " Diff {{{1
 
-nmap [n <Plug>unimpairedContextPrevious
-nmap ]n <Plug>unimpairedContextNext
-omap [n <Plug>unimpairedContextPrevious
-omap ]n <Plug>unimpairedContextNext
+if s:need_nextprevs_mappings
+  call s:map_if_necessary('nmap', '[n', '<Plug>unimpairedContextPrevious')
+  call s:map_if_necessary('nmap', ']n', '<Plug>unimpairedContextNext')
+  call s:map_if_necessary('omap', '[n', '<Plug>unimpairedContextPrevious')
+  call s:map_if_necessary('omap', ']n', '<Plug>unimpairedContextNext')
+endif
 
 nnoremap <silent> <Plug>unimpairedContextPrevious :call <SID>Context(1)<CR>
 nnoremap <silent> <Plug>unimpairedContextNext     :call <SID>Context(0)<CR>
