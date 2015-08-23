@@ -395,6 +395,17 @@ endif
 " }}}1
 " Encoding and decoding {{{1
 
+let s:need_encodings_mappings = s:need_default_mapping_for('encodings')
+if s:need_encodings_mappings
+  function! s:make_excludes_keys_for_encodings(key)
+    return [
+      \   ']'.a:key, '['.a:key,
+      \   ']'.a:key.a:key, ']'.a:key.a:key
+      \ ]
+  endfunction
+  call s:add_excludes_keys('encodings', function('<SID>make_excludes_keys_for_encodings'))
+endif
+
 function! s:string_encode(str)
   let map = {"\n": 'n', "\r": 'r', "\t": 't', "\b": 'b', "\f": '\f', '"': '"', '\': '\'}
   return substitute(a:str,"[\001-\033\\\\\"]",'\="\\".get(map,submatch(0),printf("%03o",char2nr(submatch(0))))','g')
@@ -556,9 +567,12 @@ function! UnimpairedMapTransform(algorithm, key)
   exe 'nnoremap <silent> <Plug>unimpaired_'    .a:algorithm.' :<C-U>call <SID>TransformSetup("'.a:algorithm.'")<CR>g@'
   exe 'xnoremap <silent> <Plug>unimpaired_'    .a:algorithm.' :<C-U>call <SID>Transform("'.a:algorithm.'",visualmode())<CR>'
   exe 'nnoremap <silent> <Plug>unimpaired_line_'.a:algorithm.' :<C-U>call <SID>Transform("'.a:algorithm.'",v:count1)<CR>'
-  exe 'nmap '.a:key.'  <Plug>unimpaired_'.a:algorithm
-  exe 'xmap '.a:key.'  <Plug>unimpaired_'.a:algorithm
-  exe 'nmap '.a:key.a:key[strlen(a:key)-1].' <Plug>unimpaired_line_'.a:algorithm
+
+  if s:need_encodings_mappings
+    call s:map_if_necessary('nmap', a:key, '<Plug>unimpaired_'.a:algorithm)
+    call s:map_if_necessary('xmap', a:key, '<Plug>unimpaired_'.a:algorithm)
+    call s:map_if_necessary('nmap', a:key.a:key[strlen(a:key)-1], '<Plug>unimpaired_line_'.a:algorithm)
+  endif
 endfunction
 
 call UnimpairedMapTransform('string_encode','[y')
