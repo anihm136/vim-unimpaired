@@ -33,23 +33,26 @@ let g:unimpaired_mapping.excludes = extend({
   \   'keys'      : []
   \ }, g:unimpaired_mapping.excludes)
 
+" Make sure that users can't override this mapping variable later.
+let b:unimpaired_mapping = g:unimpaired_mapping
+
 function! s:need_default_mapping_for(name)
-  return ! g:unimpaired_mapping.none
-      \ && g:unimpaired_mapping[a:name]
+  return ! b:unimpaired_mapping.none
+      \ && b:unimpaired_mapping[a:name]
 endfunction
 
 function! s:map_if_necessary(map_cmd, lhs, rhs)
-  if -1 == index(g:unimpaired_mapping.excludes.keys, a:lhs)
+  if -1 == index(b:unimpaired_mapping.excludes.keys, a:lhs)
     execute a:map_cmd a:lhs a:rhs
   endif
 endfunction
 
 function! s:add_excludes_keys(section_name, Convert)
   let actual_keys = []
-  for key in g:unimpaired_mapping.excludes[a:section_name]
+  for key in b:unimpaired_mapping.excludes[a:section_name]
     call extend(actual_keys, a:Convert(key))
   endfor
-  call extend(g:unimpaired_mapping.excludes.keys, actual_keys)
+  call extend(b:unimpaired_mapping.excludes.keys, actual_keys)
 endfunction
 
 " }}}
