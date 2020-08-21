@@ -8,38 +8,37 @@ if exists("g:loaded_unimpaired") || &cp || v:version < 700
 endif
 let g:loaded_unimpaired = 1
 
-<<<<<<< HEAD
 " Mapping configuration {{{1
 
 if ! exists('g:unimpaired_mapping') || type(g:unimpaired_mapping) != type({})
   let g:unimpaired_mapping = {}
 endif
 let g:unimpaired_mapping = extend({
-  \   'none'      : 0,
-  \   'nextprevs' : 1,
-  \   'lineopes'  : 1,
-  \   'toggles'   : 1,
-  \   'pastings'  : 1,
-  \   'encodings' : 1
-  \ }, g:unimpaired_mapping)
+      \   'none'      : 0,
+      \   'nextprevs' : 1,
+      \   'lineopes'  : 1,
+      \   'toggles'   : 1,
+      \   'pastings'  : 1,
+      \   'encodings' : 1
+      \ }, g:unimpaired_mapping)
 
 if ! has_key(g:unimpaired_mapping, 'excludes') || type(g:unimpaired_mapping.excludes) != type({})
   let g:unimpaired_mapping.excludes = {}
 endif
 let g:unimpaired_mapping.excludes = extend({
-  \   'nextprevs' : [],
-  \   'lineopes'  : [],
-  \   'toggles'   : [],
-  \   'encodings' : [],
-  \   'keys'      : []
-  \ }, g:unimpaired_mapping.excludes)
+      \   'nextprevs' : [],
+      \   'lineopes'  : [],
+      \   'toggles'   : [],
+      \   'encodings' : [],
+      \   'keys'      : []
+      \ }, g:unimpaired_mapping.excludes)
 
 " Make sure that users can't override this mapping variable later.
 let s:unimpaired_mapping = g:unimpaired_mapping
 
 function! s:need_default_mapping_for(name)
   return ! s:unimpaired_mapping.none
-      \ && s:unimpaired_mapping[a:name]
+        \ && s:unimpaired_mapping[a:name]
 endfunction
 
 function! s:map_if_necessary(map_cmd, lhs, rhs)
@@ -63,10 +62,10 @@ let s:need_nextprevs_mappings = s:need_default_mapping_for('nextprevs')
 if s:need_nextprevs_mappings
   function! s:make_excludes_keys_of_nextprevs(key)
     return [
-      \   ']'.a:key,          '['.a:key,
-      \   ']'.toupper(a:key), '['.toupper(a:key),
-      \   ']<C-'.a:key.'>',   '[<C-'.a:key.'>'
-      \ ]
+          \   ']'.a:key,          '['.a:key,
+          \   ']'.toupper(a:key), '['.toupper(a:key),
+          \   ']<C-'.a:key.'>',   '[<C-'.a:key.'>'
+          \ ]
   endfunction
   call s:add_excludes_keys('nextprevs', function('<SID>make_excludes_keys_of_nextprevs'))
 endif
@@ -80,7 +79,6 @@ function! s:MapNextFamily(map,cmd)
   execute 'nnoremap <silent> '.map.'Next     :<C-U>exe "'.cmd.'next'.end
   execute 'nnoremap <silent> '.map.'First    :<C-U>exe "'.cmd.'first'.end
   execute 'nnoremap <silent> '.map.'Last     :<C-U>exe "'.cmd.'last'.end
-<<<<<<< HEAD
   if has_nfile_cmd
     execute 'nnoremap <silent> '.map.'PFile :<C-U>exe "'.cmd.'pfile'.end
     execute 'nnoremap <silent> '.map.'NFile :<C-U>exe "'.cmd.'nfile'.end
@@ -276,10 +274,14 @@ noremap  <silent> <Plug>unimpairedMoveSelectionUp   :<C-U>call <SID>MoveSelectio
 noremap  <silent> <Plug>unimpairedMoveSelectionDown :<C-U>call <SID>MoveSelectionDown(v:count1)<CR>
 
 if s:need_lineopes_mappings
-  call s:map_if_necessary('nmap', '[e', '<Plug>unimpairedMoveUp')
-  call s:map_if_necessary('nmap', ']e', '<Plug>unimpairedMoveDown')
-  call s:map_if_necessary('xmap', '[e', '<Plug>unimpairedMoveSelectionUp')
-  call s:map_if_necessary('xmap', ']e', '<Plug>unimpairedMoveSelectionDown')
+  call s:map_if_necessary('nmap', '<M-k>', '<Plug>unimpairedMoveUp')
+  call s:map_if_necessary('nmap', '<M-j>', '<Plug>unimpairedMoveDown')
+  call s:map_if_necessary('xmap', '<M-k>', '<Plug>unimpairedMoveSelectionUp')
+  call s:map_if_necessary('xmap', '<M-j>', '<Plug>unimpairedMoveSelectionDown')
+  call s:map_if_necessary('nmap', '<M-Up>', '<Plug>unimpairedMoveUp')
+  call s:map_if_necessary('nmap', '<M-Down>', '<Plug>unimpairedMoveDown')
+  call s:map_if_necessary('xmap', '<M-Up>', '<Plug>unimpairedMoveSelectionUp')
+  call s:map_if_necessary('xmap', '<M-Down>', '<Plug>unimpairedMoveSelectionDown')
 endif
 
 " Section: Option toggling
@@ -305,7 +307,7 @@ endfunction
 function! s:cursor_options() abort
   return &cursorline && &cursorcolumn ? 'nocursorline nocursorcolumn' : 'cursorline cursorcolumn'
 endfunction
- 
+
 function! s:option_map(letter, option) abort
   if s:need_toggles_mappings
     call s:map_if_necessary('nnoremap', '[o'.a:letter, ':set '.a:option.'<C-R>=<SID>statusbump()<CR><CR>')
@@ -314,14 +316,22 @@ function! s:option_map(letter, option) abort
   endif
 endfunction
 
-nnoremap [ob :set background=light<CR>
-nnoremap ]ob :set background=dark<CR>
-nnoremap cob :set background=<C-R>=&background == 'dark' ? 'light' : 'dark'<CR><CR>
+if s:need_toggles_mappings
+  nnoremap [ob :set background=light<CR>
+  nnoremap ]ob :set background=dark<CR>
+  nnoremap cob :set background=<C-R>=&background == 'dark' ? 'light' : 'dark'<CR><CR>
+  nnoremap [od :diffthis<CR>
+  nnoremap ]od :diffoff<CR>
+  nnoremap cod :<C-R>=&diff ? 'diffoff' : 'diffthis'<CR><CR>
+  nnoremap [ox :set cursorline cursorcolumn<CR>
+  nnoremap ]ox :set nocursorline nocursorcolumn<CR>
+  nnoremap cox :set <C-R>=&cursorline && &cursorcolumn ? 'nocursorline nocursorcolumn' : 'cursorline cursorcolumn'<CR><CR>
+  nnoremap [ov :set virtualedit+=all<CR>
+  nnoremap ]ov :set virtualedit-=all<CR>
+  nnoremap cov :set <C-R>=(&virtualedit =~# "all") ? 'virtualedit-=all' : 'virtualedit+=all'<CR><CR>
+endif
 call s:option_map('c', 'cursorline')
 call s:option_map('u', 'cursorcolumn')
-nnoremap [od :diffthis<CR>
-nnoremap ]od :diffoff<CR>
-nnoremap cod :<C-R>=&diff ? 'diffoff' : 'diffthis'<CR><CR>
 call s:option_map('h', 'hlsearch')
 call s:option_map('i', 'ignorecase')
 call s:option_map('l', 'list')
@@ -329,12 +339,6 @@ call s:option_map('n', 'number')
 call s:option_map('r', 'relativenumber')
 call s:option_map('s', 'spell')
 call s:option_map('w', 'wrap')
-nnoremap [ox :set cursorline cursorcolumn<CR>
-nnoremap ]ox :set nocursorline nocursorcolumn<CR>
-nnoremap cox :set <C-R>=&cursorline && &cursorcolumn ? 'nocursorline nocursorcolumn' : 'cursorline cursorcolumn'<CR><CR>
-nnoremap [ov :set virtualedit+=all<CR>
-nnoremap ]ov :set virtualedit-=all<CR>
-nnoremap cov :set <C-R>=(&virtualedit =~# "all") ? 'virtualedit-=all' : 'virtualedit+=all'<CR><CR>
 
 " Uses can define own option-toggling mappings by this.
 let g:Unimpaired_toggle_option_by = function('<SID>option_map')
@@ -364,7 +368,7 @@ endfunction
 
 nnoremap <silent> <Plug>unimpairedPaste :call <SID>setup_paste()<CR>
 
-if s:need_pastings_mappings
+if s:need_toggles_mappings
   call s:map_if_necessary('nnoremap <silent>', '[op', ':call <SID>setup_paste()<CR>o')
   call s:map_if_necessary('nnoremap <silent>', ']op', ':call <SID>setup_paste()<CR>O')
   call s:map_if_necessary('nnoremap <silent>', 'yop', ':call <SID>setup_paste()<CR>0C')
@@ -395,12 +399,14 @@ endfunction
 nnoremap <silent> <Plug>unimpairedPutAbove :call <SID>putline('[p', 'Above')<CR>
 nnoremap <silent> <Plug>unimpairedPutBelow :call <SID>putline(']p', 'Below')<CR>
 
-nnoremap <silent> <Plug>unimpairedPutAboveShiftRight :call <SID>putline('[p', 'Above')<CR>>']
-nnoremap <silent> <Plug>unimpairedPutBelowShiftRight :call <SID>putline(']p', 'Below')<CR>>']
-nnoremap <silent> <Plug>unimpairedPutAboveShiftLeft  :call <SID>putline('[p', 'Above')<CR><']
-nnoremap <silent> <Plug>unimpairedPutBelowShiftLeft  :call <SID>putline(']p', 'Below')<CR><']
-nnoremap <silent> <Plug>unimpairedPutAboveReindent   :call <SID>putline('[p', 'Above')<CR>=']
-nnoremap <silent> <Plug>unimpairedPutBelowReindent   :call <SID>putline(']p', 'Below')<CR>=']
+if s:need_pastings_mappings
+  nnoremap <silent> <Plug>unimpairedPutAboveShiftRight :call <SID>putline('[p', 'Above')<CR>>']
+  nnoremap <silent> <Plug>unimpairedPutBelowShiftRight :call <SID>putline(']p', 'Below')<CR>>']
+  nnoremap <silent> <Plug>unimpairedPutAboveShiftLeft  :call <SID>putline('[p', 'Above')<CR><']
+  nnoremap <silent> <Plug>unimpairedPutBelowShiftLeft  :call <SID>putline(']p', 'Below')<CR><']
+  nnoremap <silent> <Plug>unimpairedPutAboveReindent   :call <SID>putline('[p', 'Above')<CR>=']
+  nnoremap <silent> <Plug>unimpairedPutBelowReindent   :call <SID>putline(']p', 'Below')<CR>=']
+endif
 
 if s:need_pastings_mappings
   call s:map_if_necessary('nmap', '[p', '<Plug>unimpairedPutAbove')
@@ -420,9 +426,9 @@ let s:need_encodings_mappings = s:need_default_mapping_for('encodings')
 if s:need_encodings_mappings
   function! s:make_excludes_keys_for_encodings(key)
     return [
-      \   ']'.a:key, '['.a:key,
-      \   ']'.a:key.a:key, ']'.a:key.a:key
-      \ ]
+          \   ']'.a:key, '['.a:key,
+          \   ']'.a:key.a:key, ']'.a:key.a:key
+          \ ]
   endfunction
   call s:add_excludes_keys('encodings', function('<SID>make_excludes_keys_for_encodings'))
 endif
@@ -598,9 +604,5 @@ call UnimpairedMapTransform('url_encode','[u')
 call UnimpairedMapTransform('url_decode',']u')
 call UnimpairedMapTransform('xml_encode','[x')
 call UnimpairedMapTransform('xml_decode',']x')
-
-" Section: Activation
-
-call s:maps()
 
 " vim:set sw=2 sts=2:
