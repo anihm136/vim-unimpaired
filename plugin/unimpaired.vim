@@ -1,6 +1,6 @@
 " unimpaired.vim - Pairs of handy bracket mappings
 " Maintainer:   Tim Pope <http://tpo.pe/>
-" Version:      1.2
+" Version:      2.0
 " GetLatestVimScripts: 1590 1 :AutoInstall: unimpaired.vim
 
 if exists("g:loaded_unimpaired") || &cp || v:version < 700
@@ -8,6 +8,7 @@ if exists("g:loaded_unimpaired") || &cp || v:version < 700
 endif
 let g:loaded_unimpaired = 1
 
+<<<<<<< HEAD
 " Mapping configuration {{{1
 
 if ! exists('g:unimpaired_mapping') || type(g:unimpaired_mapping) != type({})
@@ -79,6 +80,7 @@ function! s:MapNextFamily(map,cmd)
   execute 'nnoremap <silent> '.map.'Next     :<C-U>exe "'.cmd.'next'.end
   execute 'nnoremap <silent> '.map.'First    :<C-U>exe "'.cmd.'first'.end
   execute 'nnoremap <silent> '.map.'Last     :<C-U>exe "'.cmd.'last'.end
+<<<<<<< HEAD
   if has_nfile_cmd
     execute 'nnoremap <silent> '.map.'PFile :<C-U>exe "'.cmd.'pfile'.end
     execute 'nnoremap <silent> '.map.'NFile :<C-U>exe "'.cmd.'nfile'.end
@@ -106,7 +108,7 @@ call s:MapNextFamily('l','l')
 call s:MapNextFamily('q','c')
 call s:MapNextFamily('t','t')
 
-function! s:entries(path)
+function! s:entries(path) abort
   let path = substitute(a:path,'[\\/]$','','')
   let files = split(glob(path."/.*"),"\n")
   let files += split(glob(path."/*"),"\n")
@@ -119,8 +121,11 @@ function! s:entries(path)
   return files
 endfunction
 
-function! s:FileByOffset(num)
+function! s:FileByOffset(num) abort
   let file = expand('%:p')
+  if empty(file)
+    let file = getcwd() . '/'
+  endif
   let num = a:num
   while num
     let files = s:entries(fnamemodify(file,':h'))
@@ -130,19 +135,20 @@ function! s:FileByOffset(num)
       call sort(filter(files,'v:val ># file'))
     endif
     let temp = get(files,0,'')
-    if temp == ''
+    if empty(temp)
       let file = fnamemodify(file,':h')
     else
       let file = temp
+      let found = 1
       while isdirectory(file)
         let files = s:entries(file)
-        if files == []
-          " TODO: walk back up the tree and continue
+        if empty(files)
+          let found = 0
           break
         endif
         let file = files[num > 0 ? 0 : -1]
       endwhile
-      let num += num > 0 ? -1 : 1
+      let num += (num > 0 ? -1 : 1) * found
     endif
   endwhile
   return file
@@ -163,33 +169,20 @@ if s:need_nextprevs_mappings
   call s:map_if_necessary('nmap', '[f', '<Plug>unimpairedDirectoryPrevious')
 endif
 
-nmap <silent> <Plug>unimpairedONext     <Plug>unimpairedDirectoryNext:echohl WarningMSG<Bar>echo "]o is deprecated. Use ]f"<Bar>echohl NONE<CR>
-nmap <silent> <Plug>unimpairedOPrevious <Plug>unimpairedDirectoryPrevious:echohl WarningMSG<Bar>echo "[o is deprecated. Use [f"<Bar>echohl NONE<CR>
-if s:need_nextprevs_mappings
-  call s:map_if_necessary('nmap', ']o', '<Plug>unimpairedONext')
-  call s:map_if_necessary('nmap', '[o', '<Plug>unimpairedOPrevious')
-endif
-
-" }}}1
-" Diff {{{1
-
 if s:need_nextprevs_mappings
   call s:map_if_necessary('nmap', '[n', '<Plug>unimpairedContextPrevious')
   call s:map_if_necessary('nmap', ']n', '<Plug>unimpairedContextNext')
   call s:map_if_necessary('omap', '[n', '<Plug>unimpairedContextPrevious')
   call s:map_if_necessary('omap', ']n', '<Plug>unimpairedContextNext')
+  call s:map_if_necessary('xmap', '[n', '<Plug>unimpairedContextPrevious')
+  call s:map_if_necessary('xmap', ']n', '<Plug>unimpairedContextNext')
 endif
 
-nnoremap <silent> <Plug>unimpairedContextPrevious :call <SID>Context(1)<CR>
-nnoremap <silent> <Plug>unimpairedContextNext     :call <SID>Context(0)<CR>
-onoremap <silent> <Plug>unimpairedContextPrevious :call <SID>ContextMotion(1)<CR>
-onoremap <silent> <Plug>unimpairedContextNext     :call <SID>ContextMotion(0)<CR>
-
-function! s:Context(reverse)
+function! s:Context(reverse) abort
   call search('^\(@@ .* @@\|[<=>|]\{7}[<=>|]\@!\)', a:reverse ? 'bW' : 'W')
 endfunction
 
-function! s:ContextMotion(reverse)
+function! s:ContextMotion(reverse) abort
   if a:reverse
     -
   endif
@@ -219,8 +212,7 @@ function! s:ContextMotion(reverse)
   endif
 endfunction
 
-" }}}1
-" Line operations {{{1
+" Section: Line operations
 
 let s:need_lineopes_mappings = s:need_default_mapping_for('lineopes')
 if s:need_lineopes_mappings
@@ -250,24 +242,31 @@ if s:need_lineopes_mappings
   call s:map_if_necessary('nmap', ']<Space>', '<Plug>unimpairedBlankDown')
 endif
 
-function! s:Move(cmd, count, map) abort
+function! s:ExecMove(cmd) abort
+  let old_fdm = &foldmethod
+  if old_fdm !=# 'manual'
+    let &foldmethod = 'manual'
+  endif
   normal! m`
-  silent! exe 'move'.a:cmd.a:count
+  silent! exe a:cmd
   norm! ``
+  if old_fdm !=# 'manual'
+    let &foldmethod = old_fdm
+  endif
+endfunction
+
+function! s:Move(cmd, count, map) abort
+  call s:ExecMove('move'.a:cmd.a:count)
   silent! call repeat#set("\<Plug>unimpairedMove".a:map, a:count)
 endfunction
 
 function! s:MoveSelectionUp(count) abort
-  normal! m`
-  silent! exe "'<,'>move'<--".a:count
-  norm! ``
+  call s:ExecMove("'<,'>move'<--".a:count)
   silent! call repeat#set("\<Plug>unimpairedMoveSelectionUp", a:count)
 endfunction
 
 function! s:MoveSelectionDown(count) abort
-  normal! m`
-  exe "'<,'>move'>+".a:count
-  norm! ``
+  call s:ExecMove("'<,'>move'>+".a:count)
   silent! call repeat#set("\<Plug>unimpairedMoveSelectionDown", a:count)
 endfunction
 
@@ -283,8 +282,7 @@ if s:need_lineopes_mappings
   call s:map_if_necessary('xmap', ']e', '<Plug>unimpairedMoveSelectionDown')
 endif
 
-" }}}1
-" Option toggling {{{1
+" Section: Option toggling
 
 let s:need_toggles_mappings = s:need_default_mapping_for('toggles')
 if s:need_toggles_mappings
@@ -304,6 +302,10 @@ function! s:toggle(op) abort
   return eval('&'.a:op) ? 'no'.a:op : a:op
 endfunction
 
+function! s:cursor_options() abort
+  return &cursorline && &cursorcolumn ? 'nocursorline nocursorcolumn' : 'cursorline cursorcolumn'
+endfunction
+ 
 function! s:option_map(letter, option) abort
   if s:need_toggles_mappings
     call s:map_if_necessary('nnoremap', '[o'.a:letter, ':set '.a:option.'<C-R>=<SID>statusbump()<CR><CR>')
@@ -347,14 +349,26 @@ function! s:setup_paste() abort
   let s:mouse = &mouse
   set paste
   set mouse=
+  augroup unimpaired_paste
+    autocmd!
+    autocmd InsertLeave *
+          \ if exists('s:paste') |
+          \   let &paste = s:paste |
+          \   let &mouse = s:mouse |
+          \   unlet s:paste |
+          \   unlet s:mouse |
+          \ endif |
+          \ autocmd! unimpaired_paste
+  augroup END
 endfunction
 
 nnoremap <silent> <Plug>unimpairedPaste :call <SID>setup_paste()<CR>
 
 if s:need_pastings_mappings
-  call s:map_if_necessary('nnoremap <silent>', 'yo', ':call <SID>setup_paste()<CR>o')
-  call s:map_if_necessary('nnoremap <silent>', 'yO', ':call <SID>setup_paste()<CR>O')
-  augroup unimpaired_past
+  call s:map_if_necessary('nnoremap <silent>', '[op', ':call <SID>setup_paste()<CR>o')
+  call s:map_if_necessary('nnoremap <silent>', ']op', ':call <SID>setup_paste()<CR>O')
+  call s:map_if_necessary('nnoremap <silent>', 'yop', ':call <SID>setup_paste()<CR>0C')
+  augroup unimpaired_paste
     autocmd!
     autocmd InsertLeave *
           \ if exists('s:paste') |
@@ -368,12 +382,14 @@ endif
 
 function! s:putline(how, map) abort
   let [body, type] = [getreg(v:register), getregtype(v:register)]
-  call setreg(v:register, body, 'l')
-  exe 'normal! "'.v:register.a:how
-  call setreg(v:register, body, type)
-  if type !=# 'V'
-    silent! call repeat#set("\<Plug>unimpairedPut".a:map)
+  if type ==# 'V'
+    exe 'normal! "'.v:register.a:how
+  else
+    call setreg(v:register, body, 'l')
+    exe 'normal! "'.v:register.a:how
+    call setreg(v:register, body, type)
   endif
+  silent! call repeat#set("\<Plug>unimpairedPut".a:map)
 endfunction
 
 nnoremap <silent> <Plug>unimpairedPutAbove :call <SID>putline('[p', 'Above')<CR>
@@ -398,8 +414,7 @@ if s:need_pastings_mappings
   call s:map_if_necessary('nmap <silent>', '=p', '<Plug>unimpairedPutBelowReindent')
 endif
 
-" }}}1
-" Encoding and decoding {{{1
+" Section: Encoding and decoding
 
 let s:need_encodings_mappings = s:need_default_mapping_for('encodings')
 if s:need_encodings_mappings
@@ -412,27 +427,28 @@ if s:need_encodings_mappings
   call s:add_excludes_keys('encodings', function('<SID>make_excludes_keys_for_encodings'))
 endif
 
-function! s:string_encode(str)
+function! s:string_encode(str) abort
   let map = {"\n": 'n', "\r": 'r', "\t": 't', "\b": 'b', "\f": '\f', '"': '"', '\': '\'}
   return substitute(a:str,"[\001-\033\\\\\"]",'\="\\".get(map,submatch(0),printf("%03o",char2nr(submatch(0))))','g')
 endfunction
 
-function! s:string_decode(str)
+function! s:string_decode(str) abort
   let map = {'n': "\n", 'r': "\r", 't': "\t", 'b': "\b", 'f': "\f", 'e': "\e", 'a': "\001", 'v': "\013", "\n": ''}
   let str = a:str
-  if str =~ '^\s*".\{-\}\\\@<!\%(\\\\\)*"\s*\n\=$'
+  if str =~# '^\s*".\{-\}\\\@<!\%(\\\\\)*"\s*\n\=$'
     let str = substitute(substitute(str,'^\s*\zs"','',''),'"\ze\s*\n\=$','','')
   endif
   return substitute(str,'\\\(\o\{1,3\}\|x\x\{1,2\}\|u\x\{1,4\}\|.\)','\=get(map,submatch(1),submatch(1) =~? "^[0-9xu]" ? nr2char("0".substitute(submatch(1),"^[Uu]","x","")) : submatch(1))','g')
 endfunction
 
-function! s:url_encode(str)
-  return substitute(a:str,'[^A-Za-z0-9_.~-]','\="%".printf("%02X",char2nr(submatch(0)))','g')
+function! s:url_encode(str) abort
+  " iconv trick to convert utf-8 bytes to 8bits indiviual char.
+  return substitute(iconv(a:str, 'latin1', 'utf-8'),'[^A-Za-z0-9_.~-]','\="%".printf("%02X",char2nr(submatch(0)))','g')
 endfunction
 
-function! s:url_decode(str)
+function! s:url_decode(str) abort
   let str = substitute(substitute(substitute(a:str,'%0[Aa]\n$','%0A',''),'%0[Aa]','\n','g'),'+',' ','g')
-  return substitute(str,'%\(\x\x\)','\=nr2char("0x".submatch(1))','g')
+  return iconv(substitute(str,'%\(\x\x\)','\=nr2char("0x".submatch(1))','g'), 'utf-8', 'latin1')
 endfunction
 
 " HTML entities {{{2
@@ -504,16 +520,17 @@ let g:unimpaired_html_entities = {
 
 " }}}2
 
-function! s:xml_encode(str)
+function! s:xml_encode(str) abort
   let str = a:str
   let str = substitute(str,'&','\&amp;','g')
   let str = substitute(str,'<','\&lt;','g')
   let str = substitute(str,'>','\&gt;','g')
   let str = substitute(str,'"','\&quot;','g')
+  let str = substitute(str,"'",'\&apos;','g')
   return str
 endfunction
 
-function! s:xml_entity_decode(str)
+function! s:xml_entity_decode(str) abort
   let str = substitute(a:str,'\c&#\%(0*38\|x0*26\);','&amp;','g')
   let str = substitute(str,'\c&#\(\d\+\);','\=nr2char(submatch(1))','g')
   let str = substitute(str,'\c&#\(x\x\+\);','\=nr2char("0".submatch(1))','g')
@@ -525,23 +542,19 @@ function! s:xml_entity_decode(str)
   return substitute(str,'\c&amp;','\&','g')
 endfunction
 
-function! s:xml_decode(str)
+function! s:xml_decode(str) abort
   let str = substitute(a:str,'<\%([[:alnum:]-]\+=\%("[^"]*"\|''[^'']*''\)\|.\)\{-\}>','','g')
   return s:xml_entity_decode(str)
 endfunction
 
-function! s:Transform(algorithm,type)
+function! s:Transform(algorithm,type) abort
   let sel_save = &selection
   let cb_save = &clipboard
   set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
   let reg_save = @@
-  if a:type =~ '^\d\+$'
-    silent exe 'norm! ^v'.a:type.'$hy'
-  elseif a:type =~ '^.$'
-    silent exe "normal! `<" . a:type . "`>y"
-  elseif a:type == 'line'
+  if a:type ==# 'line'
     silent exe "normal! '[V']y"
-  elseif a:type == 'block'
+  elseif a:type ==# 'block'
     silent exe "normal! `[\<C-V>`]y"
   else
     silent exe "normal! `[v`]y"
@@ -555,21 +568,19 @@ function! s:Transform(algorithm,type)
   let @@ = reg_save
   let &selection = sel_save
   let &clipboard = cb_save
-  if a:type =~ '^\d\+$'
-    silent! call repeat#set("\<Plug>unimpaired_line_".a:algorithm,a:type)
-  endif
 endfunction
 
-function! s:TransformOpfunc(type)
+function! s:TransformOpfunc(type) abort
   return s:Transform(s:encode_algorithm, a:type)
 endfunction
 
-function! s:TransformSetup(algorithm)
+function! s:TransformSetup(algorithm) abort
   let s:encode_algorithm = a:algorithm
   let &opfunc = matchstr(expand('<sfile>'), '<SNR>\d\+_').'TransformOpfunc'
+  return 'g@'
 endfunction
 
-function! UnimpairedMapTransform(algorithm, key)
+function! UnimpairedMapTransform(algorithm, key) abort
   exe 'nnoremap <silent> <Plug>unimpaired_'    .a:algorithm.' :<C-U>call <SID>TransformSetup("'.a:algorithm.'")<CR>g@'
   exe 'xnoremap <silent> <Plug>unimpaired_'    .a:algorithm.' :<C-U>call <SID>Transform("'.a:algorithm.'",visualmode())<CR>'
   exe 'nnoremap <silent> <Plug>unimpaired_line_'.a:algorithm.' :<C-U>call <SID>Transform("'.a:algorithm.'",v:count1)<CR>'
@@ -588,6 +599,8 @@ call UnimpairedMapTransform('url_decode',']u')
 call UnimpairedMapTransform('xml_encode','[x')
 call UnimpairedMapTransform('xml_decode',']x')
 
-" }}}1
+" Section: Activation
+
+call s:maps()
 
 " vim:set sw=2 sts=2:
